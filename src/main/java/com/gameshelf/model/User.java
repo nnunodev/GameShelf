@@ -30,4 +30,13 @@ public class User {
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role")
     private Set<String> roles;
+
+    // add constructor without Id
+    public User(String username, String email, String password, Set<String> roles) {
+        this.username = username;
+
+        this.email = email;
+        this.password = password;
+        this.roles = roles;
+    }
 }
