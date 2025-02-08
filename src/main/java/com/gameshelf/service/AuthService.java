@@ -12,6 +12,7 @@ import com.gameshelf.security.JwtUtil;
 
 @Service
 public class AuthService {
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -38,13 +39,17 @@ public class AuthService {
         return "User registered successfully";
     }
 
-    public String authenticateUser(String username, String password) {
+    public boolean authenticateUser(String username, String password) {
         Optional<User> user = userRepository.findByUsername(username);
 
-        if (user.isPresent() && passwordEncoder.matches(password, user.get().getPassword())) {
-            return jwtUtil.generateToken(username); // Return JWT token
-        } else {
-            throw new IllegalArgumentException("Invalid credentials");
+        if (user.isPresent()) {
+            return passwordEncoder.matches(password, user.get().getPassword());
         }
+        return false;
     }
+
+    public boolean userExists(String username) {
+        return userRepository.findByUsername(username).isPresent();
+    }
+
 }

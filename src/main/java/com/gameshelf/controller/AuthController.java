@@ -30,12 +30,20 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<String> login(@RequestBody Map<String, String> loginRequest) {
+        String username = loginRequest.get("username");
+        String password = loginRequest.get("password");
 
-        String token = authService.authenticateUser(username, password);
+        if (username == null || password == null) {
+            return ResponseEntity.badRequest().body("Missing username or password");
+        }
 
-        return ResponseEntity.ok(Map.of("token", token));
+        boolean isAuthenticated = authService.authenticateUser(username, password);
+
+        if (isAuthenticated) {
+            return ResponseEntity.ok("Login successful");
+        } else {
+            return ResponseEntity.status(401).body("Invalid credentials");
+        }
     }
 }
