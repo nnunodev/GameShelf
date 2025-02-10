@@ -1,20 +1,20 @@
 package com.gameshelf.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
-
 import java.util.Optional;
 import java.util.Set;
 
-import com.gameshelf.model.User;
-import com.gameshelf.repository.UserRepository;
-
-import org.junit.jupiter.api.BeforeEach;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.gameshelf.model.User;
+import com.gameshelf.repository.UserRepository;
 
 class AuthServiceTest {
 
@@ -27,12 +27,7 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    @Test
+ @Test
     void testRegisterUser_Success() {
         // Arrange
         String username = "testuser";

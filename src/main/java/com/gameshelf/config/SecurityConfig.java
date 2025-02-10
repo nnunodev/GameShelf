@@ -14,17 +14,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.gameshelf.security.CustomUserDetailsService;
 import com.gameshelf.security.JwtAuthFilter;
-import com.gameshelf.security.JwtUtil;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtUtil jwtUtil;
-    private final CustomUserDetailsService customUserDetailsService; // Correct name
+    private final CustomUserDetailsService customUserDetailsService;
 
-    public SecurityConfig(JwtUtil jwtUtil, CustomUserDetailsService customUserDetailsService) {
-        this.jwtUtil = jwtUtil;
+    public SecurityConfig(CustomUserDetailsService customUserDetailsService) {
         this.customUserDetailsService = customUserDetailsService;
     }
 
@@ -47,7 +44,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .userDetailsService(customUserDetailsService);
 
         return http.build();
     }

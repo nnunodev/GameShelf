@@ -8,19 +8,16 @@ import org.springframework.stereotype.Service;
 
 import com.gameshelf.model.User;
 import com.gameshelf.repository.UserRepository;
-import com.gameshelf.security.JwtUtil;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
     }
 
     public String registerUser(String username, String email, String password) {
