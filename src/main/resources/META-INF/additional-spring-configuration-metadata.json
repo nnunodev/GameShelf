@@ -8,6 +8,30 @@
     "name": "jwt.expiration",
     "type": "java.lang.String",
     "description": "Token Expiration Time in milliseconds (default:1 hour)"
-
+  },
+  {
+    "name": "security.basic.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'security.basic.enabled'"
+  },
+  {
+    "name": "security.jwt.token-validity-seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'security.jwt.token-validity-seconds'"
+  },
+  {
+    "name": "security.headers.frame",
+    "type": "java.lang.String",
+    "description": "A description for 'security.headers.frame'"
+  },
+  {
+    "name": "security.headers.content-type",
+    "type": "java.lang.String",
+    "description": "A description for 'security.headers.content-type'"
+  },
+  {
+    "name": "security.headers.xss",
+    "type": "java.lang.String",
+    "description": "A description for 'security.headers.xss'"
   }
 ]}
