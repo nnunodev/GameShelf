@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gameshelf.security.JwtUtil;
 import com.gameshelf.service.AuthService;
 
 @RestController
@@ -15,22 +16,33 @@ import com.gameshelf.service.AuthService;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil) {
         this.authService = authService;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String email = request.get("email");
-        String password = request.get("password");
+    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String email = request.get("email");
+            String password = request.get("password");
+            
+            if (username == null || email == null || password == null) {
+                return ResponseEntity.badRequest().body("Missing required fields");
+            }
 
-        return ResponseEntity.ok(authService.registerUser(username, email, password));
+            String result = authService.registerUser(username, email, password);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
         String username = loginRequest.get("username");
         String password = loginRequest.get("password");
 
@@ -41,7 +53,11 @@ public class AuthController {
         boolean isAuthenticated = authService.authenticateUser(username, password);
 
         if (isAuthenticated) {
-            return ResponseEntity.ok("Login successful");
+            String token = jwtUtil.generateToken(username);
+            return ResponseEntity.ok(Map.of(
+                "token", token,
+                "message", "Login successful"
+            ));
         } else {
             return ResponseEntity.status(401).body("Invalid credentials");
         }

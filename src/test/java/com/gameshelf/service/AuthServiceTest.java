@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
@@ -107,5 +108,31 @@ class AuthServiceTest {
 
         // Assert
         assertThat(isAuthenticated).isFalse();
+    }
+
+    @Test
+    void testRegisterUser_InvalidEmail() {
+        // Arrange
+        String username = "testuser";
+        String email = "invalid-email";
+        String password = "password123";
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.registerUser(username, email, password))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid email format");
+    }
+
+    @Test
+    void testRegisterUser_WeakPassword() {
+        // Arrange
+        String username = "testuser";
+        String email = "test@example.com";
+        String password = "weak";
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.registerUser(username, email, password))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Password must be at least 8 characters long");
     }
 }

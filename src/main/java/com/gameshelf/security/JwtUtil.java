@@ -20,10 +20,13 @@ public class JwtUtil {
     private final long expirationTime;
 
     public JwtUtil(@Value("${jwt.expiration}") long expirationTime) {
-        String secret = System.getenv("JWT_SECRET"); // Load secret from environment variable
-
+        String secret = System.getenv("JWT_SECRET");
+        
         if (secret == null || secret.isEmpty()) {
-            throw new IllegalStateException("JWT_SECRET environment variable is not set!");
+            // Use a default secret for development only
+            secret = "defaultSecretKeyForDevelopmentEnvironmentOnly123!@#";
+            // Log a warning
+            System.out.println("WARNING: Using default JWT secret. Set JWT_SECRET environment variable in production!");
         }
 
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
