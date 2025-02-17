@@ -6,6 +6,8 @@ import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,17 +18,20 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
+
     private final SecretKey secretKey;
     private final long expirationTime;
 
     public JwtUtil(@Value("${jwt.expiration}") long expirationTime) {
         String secret = System.getenv("JWT_SECRET");
-        
+
         if (secret == null || secret.isEmpty()) {
             // Use a default secret for development only
             secret = "defaultSecretKeyForDevelopmentEnvironmentOnly123!@#";
             // Log a warning
-            System.out.println("WARNING: Using default JWT secret. Set JWT_SECRET environment variable in production!");
+            logger.warn("Using default JWT secret. Set JWT_SECRET environment variable in production!");
+
         }
 
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));

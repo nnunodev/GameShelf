@@ -8,8 +8,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gameshelf.dto.AuthRequest;
 import com.gameshelf.security.JwtUtil;
 import com.gameshelf.service.AuthService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,27 +27,19 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
-        try {
-            String username = request.get("username");
-            String email = request.get("email");
-            String password = request.get("password");
-            
-            if (username == null || email == null || password == null) {
-                return ResponseEntity.badRequest().body("Missing required fields");
-            }
-
-            String result = authService.registerUser(username, email, password);
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<?> register(@Valid @RequestBody AuthRequest request) {
+        String result = authService.registerUser(
+            request.getUsername(), 
+            request.getEmail(), 
+            request.getPassword()
+        );
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
 
         if (username == null || password == null) {
             return ResponseEntity.badRequest().body("Missing username or password");
