@@ -22,7 +22,7 @@ jobs:
       run: mvn clean verify
     
     - name: Publish Test Report
-      uses: dorny/test-reporter@eaa763f6ffc21c7a37982681497a53338b77f6c7
+      uses: dorny/test-reporter@eb9979e6e9715c332e07cd0ef84d39f186f85d27
       if: success() || failure()
       with:
         name: JUnit Tests
