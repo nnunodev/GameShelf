@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
@@ -30,109 +29,123 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    private static final String VALID_USERNAME = "testuser";
+    private static final String VALID_EMAIL = "test@example.com";
+    private static final String VALID_PASSWORD = "Password123";
+    private static final String ENCODED_PASSWORD = "encodedPassword123";
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void testRegisterUser_Success() {
+    void constructor_shouldThrowException_whenNullDependencies() {
+        assertThatThrownBy(() -> new AuthService(null, passwordEncoder))
+            .isInstanceOf(IllegalArgumentException.class);
+        
+        assertThatThrownBy(() -> new AuthService(userRepository, null))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void registerUser_shouldSucceed_whenValidInput() {
         // Arrange
-        String username = "testuser";
-        String email = "test@example.com";
-        String password = "password123";
-        String encodedPassword = "encodedPassword123";
-
-        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
-
-        User savedUser = new User(null, username, email, encodedPassword, Set.of("USER"));
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(VALID_EMAIL)).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(VALID_PASSWORD)).thenReturn(ENCODED_PASSWORD);
 
         // Act
-        String result = authService.registerUser(username, email, password);
+        String result = authService.registerUser(VALID_USERNAME, VALID_EMAIL, VALID_PASSWORD);
 
         // Assert
         assertThat(result).isEqualTo("User registered successfully");
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void testAuthenticateUser_Success() {
-        // Arrange
-        String username = "testuser";
-        String password = "password123";
-        String encodedPassword = "encodedPassword123";
+    void registerUser_shouldValidatePasswordComplexity() {
+        assertThatThrownBy(() -> authService.registerUser(VALID_USERNAME, VALID_EMAIL, "short"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least 8 characters");
 
-        User user = new User(null, username, "test@example.com", encodedPassword, Set.of("USER"));
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
+        assertThatThrownBy(() -> authService.registerUser(VALID_USERNAME, VALID_EMAIL, "password123"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("uppercase letter");
 
-        // Act
-        boolean isAuthenticated = authService.authenticateUser(username, password);
+        assertThatThrownBy(() -> authService.registerUser(VALID_USERNAME, VALID_EMAIL, "PASSWORD123"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("lowercase letter");
 
-        // Assert
-        assertThat(isAuthenticated).isTrue();
-        verify(userRepository, times(1)).findByUsername(username);
+        assertThatThrownBy(() -> authService.registerUser(VALID_USERNAME, VALID_EMAIL, "Passwordabc"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("digit");
     }
 
     @Test
-    void testAuthenticateUser_InvalidPassword() {
-        // Arrange
-        String username = "testuser";
-        String password = "wrongpassword";
-        String encodedPassword = "encodedPassword123";
-
-        User user = new User(null, username, "test@example.com", encodedPassword, Set.of("USER"));
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(password, encodedPassword)).thenReturn(false);
-
-        // Act
-        boolean isAuthenticated = authService.authenticateUser(username, password);
-
-        // Assert
-        assertThat(isAuthenticated).isFalse();
-    }
-
-    @Test
-    void testAuthenticateUser_UserNotFound() {
-        // Arrange
-        String username = "nonexistent";
-        String password = "password123";
-
-        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
-
-        // Act
-        boolean isAuthenticated = authService.authenticateUser(username, password);
-
-        // Assert
-        assertThat(isAuthenticated).isFalse();
-    }
-
-    @Test
-    void testRegisterUser_InvalidEmail() {
-        // Arrange
-        String username = "testuser";
-        String email = "invalid-email";
-        String password = "password123";
-
-        // Act & Assert
-        assertThatThrownBy(() -> authService.registerUser(username, email, password))
+    void registerUser_shouldValidateEmail() {
+        assertThatThrownBy(() -> authService.registerUser(VALID_USERNAME, "invalid-email", VALID_PASSWORD))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid email format");
     }
 
     @Test
-    void testRegisterUser_WeakPassword() {
+    void authenticateUser_shouldSucceed_withUsernameAndPassword() {
         // Arrange
-        String username = "testuser";
-        String email = "test@example.com";
-        String password = "weak";
+        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(VALID_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> authService.registerUser(username, email, password))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Password must be at least 8 characters long");
+        assertThat(authService.authenticateUser(VALID_USERNAME, VALID_PASSWORD)).isTrue();
+    }
+
+    @Test
+    void authenticateUser_shouldSucceed_withEmail() {
+        // Arrange
+        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
+        when(userRepository.findByUsername(VALID_EMAIL)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(VALID_EMAIL)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(VALID_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
+
+        // Act & Assert
+        assertThat(authService.authenticateUser(VALID_EMAIL, VALID_PASSWORD)).isTrue();
+    }
+
+    @Test
+    void authenticateUser_shouldFail_whenInvalidPassword() {
+        // Arrange
+        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongpassword", ENCODED_PASSWORD)).thenReturn(false);
+
+        // Act & Assert
+        assertThat(authService.authenticateUser(VALID_USERNAME, "wrongpassword")).isFalse();
+    }
+
+    @Test
+    void authenticateUser_shouldFail_whenUserNotFound() {
+        // Arrange
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("nonexistent")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThat(authService.authenticateUser("nonexistent", VALID_PASSWORD)).isFalse();
+    }
+
+    @Test
+    void authenticateUser_shouldHandleNullInput() {
+        assertThat(authService.authenticateUser(null, VALID_PASSWORD)).isFalse();
+        assertThat(authService.authenticateUser(VALID_USERNAME, null)).isFalse();
+    }
+
+    @Test
+    void userExists_shouldCheckUsername() {
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.empty());
+        assertThat(authService.userExists(VALID_USERNAME)).isFalse();
+
+        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
+        assertThat(authService.userExists(VALID_USERNAME)).isTrue();
     }
 }
