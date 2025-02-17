@@ -1,0 +1,31 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - name: Build with Maven
+      run: mvn clean verify
+    
+    - name: Publish Test Report
+      uses: dorny/test-reporter@c09d52f8ad2925e5044bd68f8d66e79e053c3e6a
+      if: success() || failure()
+      with:
+        name: JUnit Tests
+        path: target/surefire-reports/*.xml
+        reporter: java-junit
+        fail-on-error: true
