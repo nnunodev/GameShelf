@@ -25,6 +25,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entity representing a user in the system.
+ * This class stores user information and manages relationships
+ * with other entities like games and user roles.
+ */
 @Entity
 @Table(name = "users")
 @Getter
@@ -33,16 +38,30 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User implements UserDetails {
 
+    /**
+     * Unique identifier for the user.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Unique username for the user.
+     * Must be between 3 and 20 characters.
+     */
     @Column(nullable = false, unique = true)
     private String username;
 
+    /**
+     * User's email address.
+     * Must be unique and properly formatted.
+     */
     @Column(nullable = false, unique = true)
     private String email;
 
+    /**
+     * Encrypted password for the user.
+     */
     @Column(nullable = false)
     private String password;
 
@@ -95,6 +114,9 @@ public class User implements UserDetails {
         return true;
     }
 
+    /**
+     * Collection of games owned by the user.
+     */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<Game> games = new HashSet<>();
 
