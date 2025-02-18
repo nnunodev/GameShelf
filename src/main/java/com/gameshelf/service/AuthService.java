@@ -16,7 +16,6 @@ public class AuthService {
     
     // Compile patterns once during initialization for better performance
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$");
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{3,20}$");
     
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -96,15 +95,27 @@ public class AuthService {
 
     private void validateRegistrationInput(String username, String email, String password) {
         if (!validateUsername(username)) {
-            throw new IllegalArgumentException("Invalid username format");
+            throw new IllegalArgumentException("Invalid username format: must be 3-20 characters, alphanumeric with - and _");
         }
 
         if (!validateEmail(email)) {
             throw new IllegalArgumentException("Invalid email format");
         }
         
+        if (password == null || password.isEmpty()) {
+            throw new IllegalArgumentException("Password cannot be empty");
+        }
+        
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long");
+        }
+        
         if (!validatePassword(password)) {
-            throw new IllegalArgumentException("Invalid password format");
+            throw new IllegalArgumentException(
+                "Password must be at least 8 characters long and include: " +
+                "one uppercase letter, one lowercase letter, one digit, " +
+                "and one special character"
+            );
         }
     }
 
@@ -116,10 +127,16 @@ public class AuthService {
     }
     
     public boolean validatePassword(String password) {
-        if (password == null || password.length() > 128) {
-            return false;
+        if (password == null || password.length() < 8 || password.length() > 128) {
+            return false; 
         }
-        return PASSWORD_PATTERN.matcher(password).matches();
+
+        boolean hasUppercase = password.matches(".*[A-Z].*");
+        boolean hasLowercase = password.matches(".*[a-z].*");
+        boolean hasDigit = password.matches(".*\\d.*");
+        boolean hasSpecial = password.matches(".*[!@#$%^&*()+=\\-_{}\\[\\]|:;\"'<>,.?/~`].*");
+
+        return hasUppercase && hasLowercase && hasDigit && hasSpecial;
     }
     
     public boolean validateUsername(String username) {

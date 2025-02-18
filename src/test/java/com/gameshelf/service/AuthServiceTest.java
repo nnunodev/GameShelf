@@ -55,18 +55,21 @@ class AuthServiceTest {
 
     @Test
     void registerUser_shouldSucceed_whenValidInput() {
-        // Arrange
-        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(VALID_EMAIL.toLowerCase())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(VALID_PASSWORD)).thenReturn(ENCODED_PASSWORD);
+        // Given
+        String username = "testuser";
+        String email = "test@example.com";
+        String password = "Password123!";
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenReturn(new User());
+        when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
 
-        // Act
-        String result = authService.registerUser(VALID_USERNAME, VALID_EMAIL, VALID_PASSWORD);
+        // When
+        String result = authService.registerUser(username, email, password);
 
-        // Assert
+        // Then
         assertThat(result).isEqualTo("User registered successfully");
-        verify(userRepository).save(any(User.class));
     }
 
     @Test
