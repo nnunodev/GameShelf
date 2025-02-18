@@ -1,12 +1,14 @@
 package com.gameshelf.model;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -16,8 +18,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -93,17 +94,25 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-    @ManyToMany
-    @JoinTable(
-            name = "user_games",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "game_id")
-    )
-    private Set<Game> games;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private Set<Game> games = new HashSet<>();
+
     public Set<Game> getGames() {
         return games;
     }
+
     public void setGames(Set<Game> games) {
         this.games = games;
+    }
+
+    public void addGame(Game game) {
+        games.add(game);
+        game.setUser(this);
+    }
+
+    public void removeGame(Game game) {
+        games.remove(game);
+        game.setUser(null);
     }
 }

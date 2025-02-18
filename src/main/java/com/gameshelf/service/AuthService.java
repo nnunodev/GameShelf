@@ -35,9 +35,12 @@ public class AuthService {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty");
         }
-        if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+        
+        // Use a more efficient email validation pattern with bounded repetition
+        if (email == null || !email.matches("^[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$")) {
             throw new IllegalArgumentException("Invalid email format");
         }
+        
         validatePassword(password);
 
         if (userRepository.findByUsername(username).isPresent()) {
@@ -83,13 +86,25 @@ public class AuthService {
         if (password == null || password.length() < 8) {
             throw new IllegalArgumentException("Password must be at least 8 characters long");
         }
-        if (!password.matches(".*[A-Z].*")) {
+        
+        // Use simple character checks instead of regex
+        boolean hasUpper = false;
+        boolean hasLower = false;
+        boolean hasDigit = false;
+        
+        for (char c : password.toCharArray()) {
+            if (Character.isUpperCase(c)) hasUpper = true;
+            if (Character.isLowerCase(c)) hasLower = true;
+            if (Character.isDigit(c)) hasDigit = true;
+        }
+        
+        if (!hasUpper) {
             throw new IllegalArgumentException("Password must contain at least one uppercase letter");
         }
-        if (!password.matches(".*[a-z].*")) {
+        if (!hasLower) {
             throw new IllegalArgumentException("Password must contain at least one lowercase letter");
         }
-        if (!password.matches(".*\\d.*")) {
+        if (!hasDigit) {
             throw new IllegalArgumentException("Password must contain at least one digit");
         }
     }

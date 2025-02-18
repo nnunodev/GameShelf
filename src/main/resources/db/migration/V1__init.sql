@@ -1,15 +1,4 @@
 CREATE TABLE
-    games (
-        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(255) NOT NULL UNIQUE,
-        genre VARCHAR(255) NOT NULL,
-        platform VARCHAR(255) NOT NULL,
-        rating DOUBLE,
-        release_date DATE,
-        notes VARCHAR(1000)
-    );
-
-CREATE TABLE
     users (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(255) NOT NULL UNIQUE,
@@ -23,4 +12,18 @@ CREATE TABLE
         role VARCHAR(255) NOT NULL,
         PRIMARY KEY (user_id, role),
         CONSTRAINT fk_user_roles FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+CREATE TABLE
+    games (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        genre VARCHAR(255) NOT NULL,
+        platform VARCHAR(255) NOT NULL,
+        rating DOUBLE,
+        release_date DATE,
+        notes VARCHAR(1000),
+        user_id BIGINT,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        CONSTRAINT unique_user_game UNIQUE (user_id, title)
     );
