@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import com.gameshelf.model.User;
 import com.gameshelf.repository.UserRepository;
 
+/**
+ * Service responsible for handling user authentication and registration operations.
+ * This service provides methods for user registration, authentication, and credential validation.
+ */
 @Service
 public class AuthService {
     private final UserRepository userRepository;
@@ -18,6 +22,13 @@ public class AuthService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{3,20}$");
     
+    /**
+     * Constructs a new AuthService with required dependencies.
+     * 
+     * @param userRepository Repository for user data operations
+     * @param passwordEncoder Encoder for password hashing
+     * @throws IllegalArgumentException if any dependency is null
+     */
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         if (userRepository == null) {
             throw new IllegalArgumentException("UserRepository cannot be null");
@@ -30,8 +41,13 @@ public class AuthService {
     }
 
     /**
-     * Registers a new user with the provided credentials.
-     * @throws IllegalArgumentException if registration validation fails
+     * Registers a new user in the system.
+     * 
+     * @param username the desired username for the new user
+     * @param email the email address for the new user
+     * @param password the password for the new user
+     * @return a success message if registration is successful
+     * @throws IllegalArgumentException if any validation fails (username exists, invalid email, weak password)
      */
     public String registerUser(String username, String email, String password) {
         validateRegistrationInput(username, email, password);
@@ -56,8 +72,11 @@ public class AuthService {
     }
 
     /**
-     * Authenticates a user using either username or email.
-     * @return boolean indicating if authentication was successful
+     * Authenticates a user using either username or email with the provided password.
+     * 
+     * @param identifier the username or email of the user
+     * @param password the password to verify
+     * @return true if authentication is successful, false otherwise
      */
     public boolean authenticateUser(String identifier, String password) {
         if (identifier == null || password == null) {
@@ -86,6 +105,12 @@ public class AuthService {
         return false;
     }
 
+    /**
+     * Checks if a username already exists in the system.
+     * 
+     * @param username the username to check
+     * @return true if the username exists, false otherwise
+     */
     public boolean userExists(String username) {
         if (username == null) {
             return false;
@@ -119,6 +144,12 @@ public class AuthService {
         }
     }
 
+    /**
+     * Validates email format.
+     * 
+     * @param email the email address to validate
+     * @return true if the email format is valid, false otherwise
+     */
     public boolean validateEmail(String email) {
         if (email == null || email.length() > 254) {
             return false;
@@ -126,6 +157,18 @@ public class AuthService {
         return EMAIL_PATTERN.matcher(email).matches();
     }
     
+    /**
+     * Validates password complexity requirements.
+     * Password must contain:
+     * - At least 8 characters
+     * - At least one uppercase letter
+     * - At least one lowercase letter
+     * - At least one digit
+     * - At least one special character
+     * 
+     * @param password the password to validate
+     * @return true if the password meets all requirements, false otherwise
+     */
     public boolean validatePassword(String password) {
         if (password == null || password.length() < 8 || password.length() > 128) {
             return false; 
@@ -139,6 +182,15 @@ public class AuthService {
         return hasUppercase && hasLowercase && hasDigit && hasSpecial;
     }
     
+    /**
+     * Validates username format requirements.
+     * Username must be:
+     * - 3-20 characters long
+     * - Contain only alphanumeric characters, underscores, and hyphens
+     * 
+     * @param username the username to validate
+     * @return true if the username format is valid, false otherwise
+     */
     public boolean validateUsername(String username) {
         if (username == null || username.length() > 20) {
             return false;

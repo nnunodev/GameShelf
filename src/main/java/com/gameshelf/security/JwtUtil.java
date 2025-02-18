@@ -24,6 +24,10 @@ import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
 
+/**
+ * Utility class for handling JWT (JSON Web Token) operations.
+ * Provides functionality for generating, validating, and parsing JWTs used for authentication.
+ */
 @Component
 public class JwtUtil {
 
@@ -48,11 +52,24 @@ public class JwtUtil {
         this.expirationTime = expirationTime;
     }
 
+    /**
+     * Generates a JWT token for the specified username.
+     * 
+     * @param username the username to include in the token
+     * @return the generated JWT token string
+     */
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, username);
     }
 
+    /**
+     * Generates a JWT token with role information.
+     * 
+     * @param username the username to include in the token
+     * @param roles list of roles to include in the token
+     * @return the generated JWT token string
+     */
     public String generateToken(String username, List<String> roles) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("roles", roles);
@@ -69,6 +86,13 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Extracts the username from a JWT token.
+     * 
+     * @param token the JWT token to parse
+     * @return the username stored in the token
+     * @throws JwtException if the token is invalid or expired
+     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -110,6 +134,13 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * Validates a JWT token for a specific user.
+     * 
+     * @param token the JWT token to validate
+     * @param username the username to verify against
+     * @return true if the token is valid for the user, false otherwise
+     */
     public boolean validateToken(String token, String username) {
         if (token == null || username == null || blacklistedTokens.contains(token)) {
             return false;
@@ -136,6 +167,11 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * Adds a token to the blacklist to prevent its future use.
+     * 
+     * @param token the JWT token to blacklist
+     */
     public void blacklistToken(String token) {
         blacklistedTokens.add(token);
         // Remove expired tokens from blacklist periodically
@@ -152,6 +188,12 @@ public class JwtUtil {
         });
     }
 
+    /**
+     * Extracts user roles from a JWT token.
+     * 
+     * @param token the JWT token to parse
+     * @return list of role strings from the token
+     */
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
         try {

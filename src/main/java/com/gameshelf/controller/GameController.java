@@ -25,6 +25,10 @@ import com.gameshelf.repository.GameRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for handling game-related operations.
+ * Provides endpoints for CRUD operations on games for authenticated users.
+ */
 @RestController
 @RequestMapping("/api/games")
 @RequiredArgsConstructor
@@ -34,6 +38,14 @@ public class GameController {
 
     private final GameRepository gameRepository;
 
+    /**
+     * Adds a new game to the user's collection.
+     * 
+     * @param game the game details to add
+     * @param user the authenticated user
+     * @return ResponseEntity containing the saved game
+     * @throws ResponseStatusException if user is not authenticated or request is invalid
+     */
     @PostMapping
     public ResponseEntity<Game> addGame(@Valid @RequestBody Game game, @AuthenticationPrincipal User user) {
         try {
@@ -59,6 +71,13 @@ public class GameController {
         }
     }
 
+    /**
+     * Retrieves all games for the authenticated user.
+     * 
+     * @param user the authenticated user
+     * @return ResponseEntity containing the set of user's games
+     * @throws ResponseStatusException if user is not authenticated
+     */
     @GetMapping
     public ResponseEntity<Set<Game>> getGames(@AuthenticationPrincipal User user) {
         if (user == null) {
@@ -68,6 +87,15 @@ public class GameController {
         return ResponseEntity.ok(user.getGames());
     }
 
+    /**
+     * Updates an existing game in the user's collection.
+     * 
+     * @param id the ID of the game to update
+     * @param updatedGame the new game details
+     * @param user the authenticated user
+     * @return ResponseEntity containing the updated game
+     * @throws ResponseStatusException if game not found or user not authorized
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Game> updateGame(@PathVariable Long id, @Valid @RequestBody Game updatedGame, 
             @AuthenticationPrincipal User user) {
@@ -93,6 +121,14 @@ public class GameController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found or unauthorized"));
     }
 
+    /**
+     * Deletes a game from the user's collection.
+     * 
+     * @param id the ID of the game to delete
+     * @param user the authenticated user
+     * @return ResponseEntity with no content if successful
+     * @throws ResponseStatusException if game not found or user not authorized
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteGame(@PathVariable Long id, @AuthenticationPrincipal User user) {
         if (user == null) {
@@ -111,6 +147,14 @@ public class GameController {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found or unauthorized"));
     }
 
+    /**
+     * Retrieves a specific game by ID.
+     * 
+     * @param id the ID of the game to retrieve
+     * @param user the authenticated user
+     * @return ResponseEntity containing the requested game
+     * @throws ResponseStatusException if game not found or user not authorized
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Game> getGame(@PathVariable Long id, @AuthenticationPrincipal User user) {
         if (user == null) {
