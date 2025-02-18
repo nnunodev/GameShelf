@@ -1,23 +1,26 @@
 package com.gameshelf.service;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.gameshelf.model.User;
 import com.gameshelf.repository.UserRepository;
 
+@ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
     @Mock
@@ -36,24 +39,27 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Remove all default stubs to avoid unnecessary stubbing errors
     }
 
     @Test
     void constructor_shouldThrowException_whenNullDependencies() {
         assertThatThrownBy(() -> new AuthService(null, passwordEncoder))
-            .isInstanceOf(IllegalArgumentException.class);
-        
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("UserRepository cannot be null");
+
         assertThatThrownBy(() -> new AuthService(userRepository, null))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("PasswordEncoder cannot be null");
     }
 
     @Test
     void registerUser_shouldSucceed_whenValidInput() {
         // Arrange
         when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(VALID_EMAIL)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(VALID_EMAIL.toLowerCase())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(VALID_PASSWORD)).thenReturn(ENCODED_PASSWORD);
+        when(userRepository.save(any(User.class))).thenReturn(new User());
 
         // Act
         String result = authService.registerUser(VALID_USERNAME, VALID_EMAIL, VALID_PASSWORD);
@@ -92,8 +98,11 @@ class AuthServiceTest {
     @Test
     void authenticateUser_shouldSucceed_withUsernameAndPassword() {
         // Arrange
-        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
-        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
+        User mockUser = new User();
+        mockUser.setUsername(VALID_USERNAME);
+        mockUser.setPassword(ENCODED_PASSWORD);
+        
+        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches(VALID_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 
         // Act & Assert
@@ -103,9 +112,12 @@ class AuthServiceTest {
     @Test
     void authenticateUser_shouldSucceed_withEmail() {
         // Arrange
-        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
+        User mockUser = new User();
+        mockUser.setEmail(VALID_EMAIL.toLowerCase());
+        mockUser.setPassword(ENCODED_PASSWORD);
+        
         when(userRepository.findByUsername(VALID_EMAIL)).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(VALID_EMAIL)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(VALID_EMAIL.toLowerCase())).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches(VALID_PASSWORD, ENCODED_PASSWORD)).thenReturn(true);
 
         // Act & Assert
@@ -115,22 +127,27 @@ class AuthServiceTest {
     @Test
     void authenticateUser_shouldFail_whenInvalidPassword() {
         // Arrange
-        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
-        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("wrongpassword", ENCODED_PASSWORD)).thenReturn(false);
+        User mockUser = new User();
+        mockUser.setUsername(VALID_USERNAME);
+        mockUser.setPassword(ENCODED_PASSWORD);
+        
+        lenient().when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(mockUser));
+        lenient().when(passwordEncoder.matches(any(), any())).thenReturn(false);
 
         // Act & Assert
-        assertThat(authService.authenticateUser(VALID_USERNAME, "wrongpassword")).isFalse();
+        boolean result = authService.authenticateUser(VALID_USERNAME, VALID_PASSWORD);
+        assertThat(result).isFalse();
     }
 
     @Test
     void authenticateUser_shouldFail_whenUserNotFound() {
         // Arrange
-        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("nonexistent")).thenReturn(Optional.empty());
+        lenient().when(userRepository.findByUsername(any())).thenReturn(Optional.empty());
+        lenient().when(userRepository.findByEmail(any())).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThat(authService.authenticateUser("nonexistent", VALID_PASSWORD)).isFalse();
+        boolean result = authService.authenticateUser("nonexistent", VALID_PASSWORD);
+        assertThat(result).isFalse();
     }
 
     @Test
@@ -141,11 +158,17 @@ class AuthServiceTest {
 
     @Test
     void userExists_shouldCheckUsername() {
-        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.empty());
+        // Arrange
+        when(userRepository.findByUsername(VALID_USERNAME))
+            .thenReturn(Optional.empty())
+            .thenReturn(Optional.of(new User()));
+
+        // First check
         assertThat(authService.userExists(VALID_USERNAME)).isFalse();
 
-        User user = new User(VALID_USERNAME, VALID_EMAIL, ENCODED_PASSWORD, Set.of("USER"));
-        when(userRepository.findByUsername(VALID_USERNAME)).thenReturn(Optional.of(user));
+        // Second check
         assertThat(authService.userExists(VALID_USERNAME)).isTrue();
+
+        verify(userRepository, times(2)).findByUsername(VALID_USERNAME);
     }
 }

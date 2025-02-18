@@ -3,6 +3,8 @@ package com.gameshelf.config;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +29,8 @@ import com.gameshelf.security.JwtAuthFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final CustomUserDetailsService customUserDetailsService;
     private final List<String> allowedOrigins;
 
@@ -38,7 +42,17 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
+        
+        // Test the encoder
+        String testPassword = "Testpassword123";
+        String encoded = encoder.encode(testPassword);
+        log.debug("Test password encoding:");
+        log.debug("Original: {}", testPassword);
+        log.debug("Encoded: {}", encoded);
+        log.debug("Matches: {}", encoder.matches(testPassword, encoded));
+        
+        return encoder;
     }
 
     @Bean
@@ -58,7 +72,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Temporarily disable CSRF for testing
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/**").authenticated() // This will cover /api/games/**
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()

@@ -1,16 +1,13 @@
 package com.gameshelf.controller;
 
-import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,40 +21,40 @@ import org.springframework.web.server.ResponseStatusException;
 import com.gameshelf.model.Game;
 import com.gameshelf.model.User;
 import com.gameshelf.repository.GameRepository;
-import com.gameshelf.repository.UserRepository;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/games")
+@RequiredArgsConstructor
+@Validated
 public class GameController {
-    private static final Logger logger = LoggerFactory.getLogger(GameController.class);
+    private static final Logger log = LoggerFactory.getLogger(GameController.class);
 
-    @Autowired
-    private GameRepository gameRepository;
-    @Autowired
-    private UserRepository userRepository;
-
-    @GetMapping("/test-auth")
-    public ResponseEntity<String> testAuth(@AuthenticationPrincipal User user) {
-        if (user != null) {
-            return ResponseEntity.ok("Authenticated as: " + user.getUsername());
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
-    }
+    private final GameRepository gameRepository;
 
     @PostMapping
-    public ResponseEntity<Game> addGame(@RequestBody Game game) {
+    public ResponseEntity<Game> addGame(@Valid @RequestBody Game game, @AuthenticationPrincipal User user) {
         try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            logger.debug("Adding game: {} for authenticated user: {}", game.getTitle(), username);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+            }
             
-            User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            log.debug("Adding game: {} for user: {}", game.getTitle(), user.getUsername());
+            
+            if (game.getTitle() == null || game.getGenre() == null || game.getPlatform() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required game fields missing");
+            }
             
             game.setUser(user);
             Game savedGame = gameRepository.save(game);
+            log.info("Successfully added game: {} for user: {}", savedGame.getTitle(), user.getUsername());
             return ResponseEntity.ok(savedGame);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Error adding game: {}", e.getMessage(), e);
+            log.error("Error adding game: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error adding game");
         }
     }
@@ -65,41 +62,66 @@ public class GameController {
     @GetMapping
     public ResponseEntity<Set<Game>> getGames(@AuthenticationPrincipal User user) {
         if (user == null) {
-            logger.error("Unauthorized attempt to get games");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
+        log.debug("Retrieving games for user: {}", user.getUsername());
         return ResponseEntity.ok(user.getGames());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Game> updateGame(@PathVariable Long id, @RequestBody Game updatedGame, @AuthenticationPrincipal User user) {
-        Optional<Game> optionalGame = gameRepository.findById(id);
-        if (optionalGame.isPresent()) {
-            Game game = optionalGame.get();
-            game.setTitle(updatedGame.getTitle());
-            game.setGenre(updatedGame.getGenre());
-            game.setPlatform(updatedGame.getPlatform());
-            game.setRating(updatedGame.getRating());
-            game.setReleaseDate(updatedGame.getReleaseDate());
-            game.setNotes(updatedGame.getNotes());
-            Game savedGame = gameRepository.save(game);
-            return ResponseEntity.ok(savedGame);
-        } else {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<Game> updateGame(@PathVariable Long id, @Valid @RequestBody Game updatedGame, 
+            @AuthenticationPrincipal User user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
+        
+        log.debug("Updating game with id: {} for user: {}", id, user.getUsername());
+        
+        return gameRepository.findById(id)
+            .filter(game -> game.getUser() != null && game.getUser().getId().equals(user.getId()))
+            .map(game -> {
+                game.setTitle(updatedGame.getTitle());
+                game.setGenre(updatedGame.getGenre());
+                game.setPlatform(updatedGame.getPlatform());
+                game.setRating(updatedGame.getRating());
+                game.setReleaseDate(updatedGame.getReleaseDate());
+                game.setNotes(updatedGame.getNotes());
+                Game saved = gameRepository.save(game);
+                log.info("Successfully updated game with id: {} for user: {}", id, user.getUsername());
+                return ResponseEntity.ok(saved);
+            })
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found or unauthorized"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteGame(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        Optional<Game> optionalGame = gameRepository.findById(id);
-        if (optionalGame.isPresent()) {
-            Game game = optionalGame.get();
-            user.getGames().remove(game);
-            userRepository.save(user);
-            gameRepository.delete(game);
-            return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<Void> deleteGame(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
         }
+        
+        log.debug("Deleting game with id: {} for user: {}", id, user.getUsername());
+        
+        return gameRepository.findById(id)
+            .filter(game -> game.getUser() != null && game.getUser().getId().equals(user.getId()))
+            .map(game -> {
+                gameRepository.delete(game);
+                log.info("Successfully deleted game with id: {} for user: {}", id, user.getUsername());
+                return ResponseEntity.noContent().<Void>build();
+            })
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found or unauthorized"));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Game> getGame(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+        
+        log.debug("Retrieving game with id: {} for user: {}", id, user.getUsername());
+        
+        return gameRepository.findById(id)
+            .filter(game -> game.getUser() != null && game.getUser().getId().equals(user.getId()))
+            .map(ResponseEntity::ok)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found or unauthorized"));
     }
 }
