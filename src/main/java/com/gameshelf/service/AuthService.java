@@ -14,15 +14,11 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     
-    // Improved email pattern for better validation
-    private static final Pattern EMAIL_PATTERN = 
-        Pattern.compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$");
+    // Compile patterns once during initialization for better performance
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$");
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{3,20}$");
     
-    private static final int MIN_PASSWORD_LENGTH = 8;
-    private static final String PASSWORD_UPPERCASE_REGEX = ".*[A-Z].*";
-    private static final String PASSWORD_LOWERCASE_REGEX = ".*[a-z].*";
-    private static final String PASSWORD_DIGIT_REGEX = ".*\\d.*";
-
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         if (userRepository == null) {
             throw new IllegalArgumentException("UserRepository cannot be null");
@@ -99,36 +95,37 @@ public class AuthService {
     }
 
     private void validateRegistrationInput(String username, String email, String password) {
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("Username cannot be empty");
+        if (!validateUsername(username)) {
+            throw new IllegalArgumentException("Invalid username format");
         }
 
-        if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
+        if (!validateEmail(email)) {
             throw new IllegalArgumentException("Invalid email format");
         }
         
-        validatePassword(password);
+        if (!validatePassword(password)) {
+            throw new IllegalArgumentException("Invalid password format");
+        }
     }
 
-    private void validatePassword(String password) {
-        if (password == null) {
-            throw new IllegalArgumentException("Password cannot be null");
+    public boolean validateEmail(String email) {
+        if (email == null || email.length() > 254) {
+            return false;
         }
-        
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException("Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
+        return EMAIL_PATTERN.matcher(email).matches();
+    }
+    
+    public boolean validatePassword(String password) {
+        if (password == null || password.length() > 128) {
+            return false;
         }
-        
-        if (!password.matches(PASSWORD_UPPERCASE_REGEX)) {
-            throw new IllegalArgumentException("Password must contain at least one uppercase letter");
+        return PASSWORD_PATTERN.matcher(password).matches();
+    }
+    
+    public boolean validateUsername(String username) {
+        if (username == null || username.length() > 20) {
+            return false;
         }
-        
-        if (!password.matches(PASSWORD_LOWERCASE_REGEX)) {
-            throw new IllegalArgumentException("Password must contain at least one lowercase letter");
-        }
-        
-        if (!password.matches(PASSWORD_DIGIT_REGEX)) {
-            throw new IllegalArgumentException("Password must contain at least one digit");
-        }
+        return USERNAME_PATTERN.matcher(username).matches();
     }
 }
