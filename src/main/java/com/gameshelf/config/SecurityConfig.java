@@ -71,15 +71,18 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.sameOrigin())
                 )
                 .csrf(csrf -> csrf
-                    .ignoringRequestMatchers("/api/auth/**") // Only disable for stateless auth endpoints
+                    .ignoringRequestMatchers("/api/auth/**", "/h2-console/**") // Add H2 console to ignored paths
                     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/h2-console/**").permitAll() // Allow H2 Console access
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/**").authenticated() // This will cover /api/games/**
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated()
+                )
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.disable()) // Disable X-Frame-Options for H2 console
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
