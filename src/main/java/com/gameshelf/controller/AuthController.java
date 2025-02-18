@@ -46,6 +46,9 @@ public class AuthController {
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
             log.debug("Login attempt for user: {}", request.getUsername());
+            System.out.println("Debug - Login attempt:");
+            System.out.println("Username: " + request.getUsername());
+            System.out.println("Password length: " + (request.getPassword() != null ? request.getPassword().length() : "null"));
             
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -57,6 +60,9 @@ public class AuthController {
             return ResponseEntity.ok(new TokenResponse(jwt));
         } catch (AuthenticationException e) {
             log.error("Authentication failed for user: {}", request.getUsername(), e);
+            System.out.println("Debug - Authentication failed:");
+            System.out.println("Error message: " + e.getMessage());
+            System.out.println("Error type: " + e.getClass().getSimpleName());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }

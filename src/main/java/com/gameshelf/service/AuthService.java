@@ -66,6 +66,7 @@ public class AuthService {
      */
     public boolean authenticateUser(String identifier, String password) {
         if (identifier == null || password == null) {
+            System.out.println("Debug: Null identifier or password");
             return false;
         }
 
@@ -78,8 +79,15 @@ public class AuthService {
         }
 
         if (userOpt.isPresent()) {
-            return passwordEncoder.matches(password, userOpt.get().getPassword());
+            User user = userOpt.get();
+            System.out.println("Debug: Found user: " + user.getUsername());
+            System.out.println("Debug: Stored encoded password: " + user.getPassword());
+            System.out.println("Debug: Attempting to match with provided password: " + password);
+            boolean matches = passwordEncoder.matches(password, user.getPassword());
+            System.out.println("Debug: Password match result: " + matches);
+            return matches;
         }
+        System.out.println("Debug: User not found");
         return false;
     }
 
